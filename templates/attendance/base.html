@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Care Groups{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'attendance/css/style.css' %}">
+</head>
+<body>
+  <header class="app-header">
+    {% block header %}
+    <span class="app-title">Care Groups</span>
+    {% endblock %}
+  </header>
+  <main class="app-main">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
