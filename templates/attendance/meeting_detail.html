@@ -3,28 +3,41 @@
 {% block title %}{{ meeting.date|date:"d M Y" }} — {{ group.name }}{% endblock %}
 
 {% block header %}
-<a href="{% url 'meeting_list' %}" class="header-back">‹ Meetings</a>
+<a href="{% url 'meeting_list' %}" class="header-action">‹ Back</a>
 <span class="app-title">{{ meeting.date|date:"d M Y" }}</span>
-<a href="{% url 'logout' %}" class="header-logout">Sign out</a>
+<a href="{% url 'logout' %}" class="header-action header-action-right">Sign out</a>
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
-  <form method="post">
+
+  <div class="attendance-summary">
+    <span class="summary-count" id="present-count">0</span>
+    <span class="summary-label"> of {{ member_data|length }} present</span>
+  </div>
+
+  <form method="post" id="attendance-form">
     {% csrf_token %}
     <input type="hidden" name="action" value="save_attendance">
 
-    <ul class="roster-list">
+    <p class="section-title">Members</p>
+    <div class="member-grid">
       {% for item in member_data %}
-        <li class="roster-item">
-          <label class="roster-label">
-            <span class="member-name">{{ item.member.name }}</span>
-            <input type="checkbox" name="present_members" value="{{ item.member.pk }}"
-              class="roster-checkbox" {% if item.is_present %}checked{% endif %}>
-          </label>
-        </li>
+        <div class="member-card {% if item.is_present %}present{% endif %}"
+             data-member-id="{{ item.member.pk }}"
+             onclick="toggleMember(this)">
+          <input type="checkbox" name="present_members" value="{{ item.member.pk }}"
+                 class="member-checkbox" {% if item.is_present %}checked{% endif %}>
+          <div class="member-avatar">{{ item.member.name|slice:":1"|upper }}</div>
+          <span class="member-card-name">{{ item.member.name }}</span>
+          <span class="member-rate-badge
+            {% if item.rate >= 75 %}badge-green{% elif item.rate >= 50 %}badge-yellow{% else %}badge-red{% endif %}">
+            {{ item.rate }}%
+          </span>
+          <div class="present-indicator">✓</div>
+        </div>
       {% endfor %}
-    </ul>
+    </div>
 
     <button type="submit" class="btn btn-primary save-btn">Save Attendance</button>
   </form>
@@ -35,12 +48,15 @@
   </button>
 
   {% if visitors %}
-    <h3 class="section-title visitors-title">Visitors</h3>
+    <p class="section-title visitors-title">Visitors</p>
     <ul class="visitor-list">
       {% for v in visitors %}
         <li class="visitor-item">
-          <span class="visitor-name">{{ v.name }}</span>
-          {% if v.note %}<span class="visitor-note">{{ v.note }}</span>{% endif %}
+          <div class="visitor-avatar">{{ v.name|slice:":1"|upper }}</div>
+          <div class="visitor-info">
+            <span class="visitor-name">{{ v.name }}</span>
+            {% if v.note %}<span class="visitor-note">{{ v.note }}</span>{% endif %}
+          </div>
         </li>
       {% endfor %}
     </ul>
@@ -70,4 +86,21 @@
     </form>
   </div>
 </div>
+
+<script>
+function toggleMember(card) {
+  card.classList.toggle('present');
+  const cb = card.querySelector('.member-checkbox');
+  cb.checked = !cb.checked;
+  updateCount();
+}
+
+function updateCount() {
+  const total = document.querySelectorAll('.member-card').length;
+  const present = document.querySelectorAll('.member-card.present').length;
+  document.getElementById('present-count').textContent = present;
+}
+
+updateCount();
+</script>
 {% endblock %}

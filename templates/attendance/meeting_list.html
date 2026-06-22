@@ -3,27 +3,65 @@
 {% block title %}Meetings — {{ group.name }}{% endblock %}
 
 {% block header %}
-<a href="{% url 'logout' %}" class="header-logout">Sign out</a>
+<a href="{% url 'logout' %}" class="header-action">Sign out</a>
 <span class="app-title">{{ group.name }}</span>
-<a href="#" class="header-right-placeholder"></a>
+<a href="{% url 'members_list' %}" class="header-action header-action-right">Members</a>
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
+
+  {% if total_meetings %}
+  <div class="stats-strip">
+    <div class="stat-item">
+      <span class="stat-value">{{ total_meetings }}</span>
+      <span class="stat-label">Meetings</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-value">{{ avg_attendance }}</span>
+      <span class="stat-label">Avg Present</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-value">{{ active_member_count }}</span>
+      <span class="stat-label">Members</span>
+    </div>
+  </div>
+  {% endif %}
+
+  <a href="{% url 'add_meeting_date' %}" class="btn btn-primary new-meeting-btn">+ New Meeting</a>
+
   {% if meetings %}
+    <p class="section-title">Past Meetings</p>
     <ul class="meeting-list">
       {% for meeting in meetings %}
         <li class="meeting-card">
           <a href="{% url 'meeting_detail' meeting.date|date:'Y-m-d' %}" class="meeting-link">
-            <span class="meeting-date">{{ meeting.date|date:"D, d M Y" }}</span>
-            <span class="meeting-count">{{ meeting.attendance_count }} present</span>
+            <div class="meeting-info">
+              <span class="meeting-date">{{ meeting.date|date:"D, d M Y" }}</span>
+              <span class="meeting-subtext">{{ meeting.attendance_count }} present</span>
+            </div>
+            <div class="meeting-right">
+              {% if active_member_count %}
+              <div class="mini-progress">
+                <div class="mini-progress-bar" style="width:{% widthratio meeting.attendance_count active_member_count 100 %}%"></div>
+              </div>
+              {% endif %}
+              <span class="chevron">›</span>
+            </div>
           </a>
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p class="empty-state">No meetings recorded yet. Add meeting dates in the admin panel.</p>
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p class="empty-title">No meetings yet</p>
+      <p class="empty-body">Tap "New Meeting" above to log your first attendance.</p>
+    </div>
   {% endif %}
+
   <a href="{% url 'analytics' %}" class="btn btn-secondary analytics-link">View Analytics</a>
 </div>
 {% endblock %}

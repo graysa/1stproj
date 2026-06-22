@@ -1,0 +1,25 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}New Meeting — {{ group.name }}{% endblock %}
+
+{% block header %}
+<a href="{% url 'meeting_list' %}" class="header-action">‹ Back</a>
+<span class="app-title">New Meeting</span>
+<a href="#" class="header-action header-action-right"></a>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <div class="form-card">
+    <p class="form-card-hint">Choose the date for this meeting. You can log attendance for today or a past date.</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Meeting Date</label>
+        <input type="date" name="date" value="{{ today }}" max="{{ today }}" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Open Attendance</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

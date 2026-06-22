@@ -1,0 +1,51 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Members — {{ group.name }}{% endblock %}
+
+{% block header %}
+<a href="{% url 'meeting_list' %}" class="header-action">‹ Back</a>
+<span class="app-title">Members</span>
+<a href="#" class="header-action header-action-right"></a>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <div class="form-card">
+    <p class="section-title">Add Member</p>
+    <form method="post" action="{% url 'add_member' %}">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Full Name</label>
+        <input type="text" name="name" class="form-input" required autocomplete="off" placeholder="e.g. Sarah Tan">
+      </div>
+      <button type="submit" class="btn btn-primary">Add to Roster</button>
+    </form>
+  </div>
+
+  {% if members %}
+    <p class="section-title">Roster</p>
+    <ul class="members-manage-list">
+      {% for member in members %}
+        <li class="members-manage-item {% if not member.is_active %}member-inactive{% endif %}">
+          <div class="member-avatar avatar-sm">{{ member.name|slice:":1"|upper }}</div>
+          <span class="member-manage-name">{{ member.name }}</span>
+          <form method="post" action="{% url 'toggle_member' member.pk %}" style="margin:0">
+            {% csrf_token %}
+            <button type="submit" class="toggle-btn {% if member.is_active %}toggle-deactivate{% else %}toggle-activate{% endif %}">
+              {% if member.is_active %}Deactivate{% else %}Reactivate{% endif %}
+            </button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="members-hint">Deactivated members are hidden from attendance but their history is kept.</p>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">👥</div>
+      <p class="empty-title">No members yet</p>
+      <p class="empty-body">Add your group members above.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
