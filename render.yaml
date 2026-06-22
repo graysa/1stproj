@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: caregroup
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn caregroup.wsgi"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DB_PATH
+        value: "/var/data/db.sqlite3"
+    disk:
+      name: caregroup-data
+      mountPath: /var/data
+      sizeGB: 1
