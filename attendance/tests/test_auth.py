@@ -87,3 +87,58 @@ class DecoratorTest(TestCase):
         self.client.post(reverse('login'), {'group_name': 'Alpha', 'pin': '1234'})
         response = self.client.get(reverse('meeting_list'))
         self.assertEqual(response.status_code, 200)
+
+
+class StaffRequiredDecoratorTest(TestCase):
+    def test_redirects_anonymous_user(self):
+        from django.test import RequestFactory
+        from django.contrib.auth.models import AnonymousUser
+        from django.http import HttpResponse
+        from attendance.decorators import staff_required
+
+        factory = RequestFactory()
+
+        @staff_required
+        def dummy(request):
+            return HttpResponse('ok')
+
+        request = factory.get('/dummy/')
+        request.user = AnonymousUser()
+        response = dummy(request)
+        self.assertEqual(response.status_code, 302)
+
+    def test_allows_staff_user(self):
+        from django.test import RequestFactory
+        from django.contrib.auth.models import User
+        from django.http import HttpResponse
+        from attendance.decorators import staff_required
+
+        factory = RequestFactory()
+
+        @staff_required
+        def dummy(request):
+            return HttpResponse('ok')
+
+        request = factory.get('/dummy/')
+        staff = User(username='staff', is_staff=True)
+        request.user = staff
+        response = dummy(request)
+        self.assertEqual(response.status_code, 200)
+
+    def test_redirects_non_staff_user(self):
+        from django.test import RequestFactory
+        from django.contrib.auth.models import User
+        from django.http import HttpResponse
+        from attendance.decorators import staff_required
+
+        factory = RequestFactory()
+
+        @staff_required
+        def dummy(request):
+            return HttpResponse('ok')
+
+        request = factory.get('/dummy/')
+        user = User(username='regular', is_staff=False)
+        request.user = user
+        response = dummy(request)
+        self.assertEqual(response.status_code, 302)
