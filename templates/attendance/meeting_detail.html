@@ -1,0 +1,73 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}{{ meeting.date|date:"d M Y" }} — {{ group.name }}{% endblock %}
+
+{% block header %}
+<a href="{% url 'meeting_list' %}" class="header-back">‹ Meetings</a>
+<span class="app-title">{{ meeting.date|date:"d M Y" }}</span>
+<a href="{% url 'logout' %}" class="header-logout">Sign out</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_attendance">
+
+    <ul class="roster-list">
+      {% for item in member_data %}
+        <li class="roster-item">
+          <label class="roster-label">
+            <span class="member-name">{{ item.member.name }}</span>
+            <input type="checkbox" name="present_members" value="{{ item.member.pk }}"
+              class="roster-checkbox" {% if item.is_present %}checked{% endif %}>
+          </label>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <button type="submit" class="btn btn-primary save-btn">Save Attendance</button>
+  </form>
+
+  <button type="button" class="btn btn-secondary add-visitor-btn"
+    onclick="document.getElementById('visitor-modal').classList.add('open')">
+    + Add Visitor
+  </button>
+
+  {% if visitors %}
+    <h3 class="section-title visitors-title">Visitors</h3>
+    <ul class="visitor-list">
+      {% for v in visitors %}
+        <li class="visitor-item">
+          <span class="visitor-name">{{ v.name }}</span>
+          {% if v.note %}<span class="visitor-note">{{ v.note }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>
+
+<div id="visitor-modal" class="modal-overlay">
+  <div class="modal-card">
+    <h3 class="modal-title">Add Visitor</h3>
+    <form method="post" action="{% url 'add_visitor' meeting.date|date:'Y-m-d' %}">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Name</label>
+        <input type="text" name="name" class="form-input" required autocomplete="off">
+      </div>
+      <div class="form-field">
+        <label>Note (optional)</label>
+        <textarea name="note" class="form-input" rows="2"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost"
+          onclick="document.getElementById('visitor-modal').classList.remove('open')">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
