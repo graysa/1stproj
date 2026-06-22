@@ -24,5 +24,6 @@
   {% else %}
     <p class="empty-state">No meetings recorded yet. Add meeting dates in the admin panel.</p>
   {% endif %}
+  <a href="{% url 'analytics' %}" class="btn btn-secondary analytics-link">View Analytics</a>
 </div>
 {% endblock %}
