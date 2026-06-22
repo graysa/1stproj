@@ -1,15 +1,17 @@
 from django.urls import path
 from django.http import HttpResponse
 from attendance.views.auth import login_view, logout_view
+from attendance.views.meetings import meeting_list
 
 
-def _placeholder(request):
+def _placeholder(request, *args, **kwargs):
     return HttpResponse('coming soon')
 
 
 urlpatterns = [
     path('login/', login_view, name='login'),
     path('logout/', logout_view, name='logout'),
-    # Stub for Task 4 — replaced when meeting list view is implemented
-    path('meetings/', _placeholder, name='meeting_list'),
+    path('meetings/', meeting_list, name='meeting_list'),
+    # Stub for Task 5 — replaced when meeting detail view is implemented
+    path('meetings/<str:date>/', _placeholder, name='meeting_detail'),
 ]
