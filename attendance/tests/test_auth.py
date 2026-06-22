@@ -82,3 +82,8 @@ class DecoratorTest(TestCase):
 
         response = fake_view(request)
         self.assertEqual(response.status_code, 302)
+
+    def test_protected_view_accessible_when_logged_in(self):
+        self.client.post(reverse('login'), {'group_name': 'Alpha', 'pin': '1234'})
+        response = self.client.get(reverse('meeting_list'))
+        self.assertEqual(response.status_code, 200)
