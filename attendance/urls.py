@@ -1,7 +1,9 @@
 from django.urls import path
 from attendance.views.auth import login_view, logout_view
 from attendance.views.meetings import meeting_list, meeting_detail, add_visitor
-from attendance.views.analytics import analytics, analytics_data
+from attendance.views.analytics import (
+    analytics, analytics_data, admin_dashboard, admin_dashboard_data
+)
 
 urlpatterns = [
     path('', meeting_list, name='home'),
@@ -12,4 +14,6 @@ urlpatterns = [
     path('meetings/<str:date>/visitor/', add_visitor, name='add_visitor'),
     path('analytics/', analytics, name='analytics'),
     path('analytics/data/', analytics_data, name='analytics_data'),
+    path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
+    path('admin-dashboard/data/', admin_dashboard_data, name='admin_dashboard_data'),
 ]

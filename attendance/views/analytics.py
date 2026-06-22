@@ -1,7 +1,7 @@
 import datetime
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
-from attendance.decorators import group_login_required
+from attendance.decorators import group_login_required, staff_required
 from attendance.models import CareGroup, Member, MeetingDate, AttendanceRecord, Visitor
 
 
@@ -67,6 +67,55 @@ def analytics_data(request):
     return JsonResponse({
         'weekly': {'labels': weekly_labels, 'totals': weekly_totals},
         'member_rates': member_rates,
+        'from_date': str(from_date),
+        'to_date': str(to_date),
+    })
+
+
+@staff_required
+def admin_dashboard(request):
+    groups = CareGroup.objects.all().order_by('name')
+    return render(request, 'attendance/admin_dashboard.html', {'groups': groups})
+
+
+@staff_required
+def admin_dashboard_data(request):
+    from_date, to_date = _parse_date_params(request)
+    groups = CareGroup.objects.all().order_by('name')
+    result = []
+
+    for group in groups:
+        meetings = MeetingDate.objects.filter(
+            group=group, date__gte=from_date, date__lte=to_date
+        ).order_by('date')
+        meeting_ids = list(meetings.values_list('pk', flat=True))
+        meeting_count = len(meeting_ids)
+
+        weekly_labels, weekly_totals = [], []
+        for meeting in meetings:
+            present = AttendanceRecord.objects.filter(
+                meeting_date=meeting, is_present=True
+            ).count()
+            visitors = Visitor.objects.filter(meeting_date=meeting).count()
+            weekly_labels.append(str(meeting.date))
+            weekly_totals.append(present + visitors)
+
+        active_member_count = Member.objects.filter(group=group, is_active=True).count()
+        total_attended = AttendanceRecord.objects.filter(
+            meeting_date_id__in=meeting_ids, is_present=True
+        ).count()
+        denominator = meeting_count * active_member_count
+        overall_rate = round((total_attended / denominator) * 100, 1) if denominator > 0 else 0.0
+
+        result.append({
+            'name': group.name,
+            'weekly': {'labels': weekly_labels, 'totals': weekly_totals},
+            'overall_rate': overall_rate,
+            'meeting_count': meeting_count,
+        })
+
+    return JsonResponse({
+        'groups': result,
         'from_date': str(from_date),
         'to_date': str(to_date),
     })
