@@ -1,0 +1,29 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Sign In — Care Groups{% endblock %}
+
+{% block header %}
+<span class="app-title">Care Groups</span>
+{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <h1 class="auth-title">Welcome</h1>
+  <p class="auth-subtitle">Sign in to your care group</p>
+  <form method="post" class="auth-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="form-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="form-field">
+      <label for="{{ form.group_name.id_for_label }}">Group</label>
+      {{ form.group_name }}
+    </div>
+    <div class="form-field">
+      <label for="{{ form.pin.id_for_label }}">PIN</label>
+      {{ form.pin }}
+    </div>
+    <button type="submit" class="btn btn-primary">Sign In</button>
+  </form>
+</div>
+{% endblock %}
