@@ -29,7 +29,12 @@ def meeting_detail(request, date):
     existing = {r.member_id: r for r in AttendanceRecord.objects.filter(meeting_date=meeting)}
 
     if request.method == 'POST' and request.POST.get('action') == 'save_attendance':
-        present_ids = set(int(pk) for pk in request.POST.getlist('present_members'))
+        present_ids = set()
+        for pk in request.POST.getlist('present_members'):
+            try:
+                present_ids.add(int(pk))
+            except (ValueError, TypeError):
+                pass
         for member in active_members:
             AttendanceRecord.objects.update_or_create(
                 meeting_date=meeting,
