@@ -1,5 +1,6 @@
+import csv
 import datetime
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404
 from attendance.decorators import group_login_required, staff_required
 from attendance.models import CareGroup, Member, MeetingDate, AttendanceRecord, Visitor
@@ -119,3 +120,41 @@ def admin_dashboard_data(request):
         'from_date': str(from_date),
         'to_date': str(to_date),
     })
+
+
+@staff_required
+def export_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="attendance_export.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Group', 'Member', 'Present'])
+
+    records = (
+        AttendanceRecord.objects
+        .select_related('meeting_date__group', 'member')
+        .order_by('meeting_date__group__name', 'meeting_date__date', 'member__name')
+    )
+    for r in records:
+        writer.writerow([
+            r.meeting_date.date,
+            r.meeting_date.group.name,
+            r.member.name,
+            'Yes' if r.is_present else 'No',
+        ])
+
+    # Append visitors as separate rows
+    visitors = (
+        Visitor.objects
+        .select_related('meeting_date__group')
+        .order_by('meeting_date__group__name', 'meeting_date__date')
+    )
+    for v in visitors:
+        writer.writerow([
+            v.meeting_date.date,
+            v.meeting_date.group.name,
+            f'{v.name} (visitor)',
+            'Yes',
+        ])
+
+    return response

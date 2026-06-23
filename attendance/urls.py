@@ -5,7 +5,7 @@ from attendance.views.meetings import (
     members_list, add_member, toggle_member,
 )
 from attendance.views.analytics import (
-    analytics, analytics_data, admin_dashboard, admin_dashboard_data
+    analytics, analytics_data, admin_dashboard, admin_dashboard_data, export_csv
 )
 
 urlpatterns = [
@@ -23,4 +23,5 @@ urlpatterns = [
     path('analytics/data/', analytics_data, name='analytics_data'),
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
     path('admin-dashboard/data/', admin_dashboard_data, name='admin_dashboard_data'),
+    path('admin-dashboard/export/', export_csv, name='export_csv'),
 ]
