@@ -2,7 +2,7 @@ from django.urls import path
 from attendance.views.auth import login_view, logout_view
 from attendance.views.meetings import (
     meeting_list, add_meeting_date, meeting_detail, add_visitor,
-    delete_meeting, members_list, add_member, toggle_member,
+    delete_meeting, members_list, add_member, toggle_member, change_pin,
 )
 from attendance.views.analytics import (
     analytics, analytics_data, admin_dashboard, admin_dashboard_data, export_csv
@@ -20,6 +20,7 @@ urlpatterns = [
     path('members/', members_list, name='members_list'),
     path('members/add/', add_member, name='add_member'),
     path('members/<int:member_id>/toggle/', toggle_member, name='toggle_member'),
+    path('settings/pin/', change_pin, name='change_pin'),
     path('analytics/', analytics, name='analytics'),
     path('analytics/data/', analytics_data, name='analytics_data'),
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),

@@ -23,18 +23,36 @@
     <p class="section-title">Members</p>
     <div class="member-grid">
       {% for item in member_data %}
-        <div class="member-card {% if item.is_present %}present{% endif %}"
+        <div class="member-card {% if item.is_present %}present{% endif %}
+                    {% if item.current_streak >= 12 %}milestone-special
+                    {% elif item.current_streak >= 8 %}milestone-gold
+                    {% elif item.current_streak >= 4 %}milestone-silver{% endif %}"
              data-member-id="{{ item.member.pk }}"
+             data-streak="{{ item.current_streak }}"
+             data-longest="{{ item.longest_streak }}"
              onclick="toggleMember(this)">
           <input type="checkbox" name="present_members" value="{{ item.member.pk }}"
                  class="member-checkbox" {% if item.is_present %}checked{% endif %}>
+
+          {% if item.is_new %}<span class="new-tag">New</span>{% endif %}
+
           <div class="member-avatar">{{ item.member.name|slice:":1"|upper }}</div>
           <span class="member-card-name">{{ item.member.name }}</span>
-          <span class="member-rate-badge
-            {% if item.rate >= 75 %}badge-green{% elif item.rate >= 50 %}badge-yellow{% else %}badge-red{% endif %}">
-            {{ item.rate }}%
-          </span>
+
+          <div class="member-card-meta">
+            <span class="member-rate-badge
+              {% if item.rate >= 75 %}badge-green{% elif item.rate >= 50 %}badge-yellow{% else %}badge-red{% endif %}">
+              {{ item.rate }}%
+            </span>
+            {% if item.current_streak >= 1 %}
+              <span class="streak-badge">🔥 <span class="streak-num">{{ item.current_streak }}</span></span>
+            {% else %}
+              <span class="streak-badge streak-zero">🔥 <span class="streak-num">0</span></span>
+            {% endif %}
+          </div>
+
           <div class="present-indicator">✓</div>
+          <div class="personal-best-flash" id="pb-{{ item.member.pk }}">🏆 Personal Best!</div>
         </div>
       {% endfor %}
     </div>
@@ -72,13 +90,11 @@
   <div class="modal-card">
     <h3 class="modal-title">Delete Meeting Log?</h3>
     <p style="color:var(--text2);font-size:15px;margin-bottom:20px;line-height:1.5;">
-      This will permanently delete the attendance log for <strong>{{ meeting.date|date:"d M Y" }}</strong>, including all attendance records and visitors. This cannot be undone.
+      This will permanently delete the attendance log for <strong>{{ meeting.date|date:"d M Y" }}</strong>, including all records and visitors.
     </p>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost"
-        onclick="document.getElementById('delete-modal').classList.remove('open')">
-        Cancel
-      </button>
+        onclick="document.getElementById('delete-modal').classList.remove('open')">Cancel</button>
       <form method="post" action="{% url 'delete_meeting' meeting.date|date:'Y-m-d' %}" style="flex:1">
         {% csrf_token %}
         <button type="submit" class="btn btn-danger" style="width:100%;margin-top:0">Delete</button>
@@ -102,9 +118,7 @@
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost"
-          onclick="document.getElementById('visitor-modal').classList.remove('open')">
-          Cancel
-        </button>
+          onclick="document.getElementById('visitor-modal').classList.remove('open')">Cancel</button>
         <button type="submit" class="btn btn-primary">Add</button>
       </div>
     </form>
@@ -112,15 +126,49 @@
 </div>
 
 <script>
+const MILESTONES = [4, 8, 12];
+
 function toggleMember(card) {
   card.classList.toggle('present');
   const cb = card.querySelector('.member-checkbox');
   cb.checked = !cb.checked;
+  const isNowPresent = card.classList.toggle !== undefined && card.classList.contains('present');
+
+  const streak = parseInt(card.dataset.streak) || 0;
+  const longest = parseInt(card.dataset.longest) || 0;
+  const newStreak = streak + 1;
+  const streakEl = card.querySelector('.streak-num');
+
+  if (card.classList.contains('present')) {
+    streakEl.textContent = newStreak;
+
+    // Milestone border upgrade
+    card.classList.remove('milestone-silver','milestone-gold','milestone-special');
+    if (newStreak >= 12) card.classList.add('milestone-special');
+    else if (newStreak >= 8) card.classList.add('milestone-gold');
+    else if (newStreak >= 4) card.classList.add('milestone-silver');
+
+    // Personal best (only if they had at least 3 in a row before)
+    if (newStreak > longest && streak >= 3) {
+      const pb = document.getElementById('pb-' + card.dataset.memberId);
+      if (pb) {
+        pb.classList.add('show');
+        setTimeout(() => pb.classList.remove('show'), 3000);
+      }
+    }
+  } else {
+    streakEl.textContent = streak;
+    // Restore original milestone class
+    card.classList.remove('milestone-silver','milestone-gold','milestone-special');
+    if (streak >= 12) card.classList.add('milestone-special');
+    else if (streak >= 8) card.classList.add('milestone-gold');
+    else if (streak >= 4) card.classList.add('milestone-silver');
+  }
+
   updateCount();
 }
 
 function updateCount() {
-  const total = document.querySelectorAll('.member-card').length;
   const present = document.querySelectorAll('.member-card.present').length;
   document.getElementById('present-count').textContent = present;
 }

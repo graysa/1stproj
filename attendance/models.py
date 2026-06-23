@@ -26,6 +26,7 @@ class Member(models.Model):
     name = models.CharField(max_length=100)
     group = models.ForeignKey(CareGroup, on_delete=models.CASCADE, related_name='members')
     is_active = models.BooleanField(default=True)
+    date_joined = models.DateField(auto_now_add=True, null=True)
 
     class Meta:
         ordering = ['name']

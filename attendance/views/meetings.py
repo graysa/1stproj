@@ -117,6 +117,16 @@ def meeting_detail(request, date):
     recent_meetings = MeetingDate.objects.filter(group=group, date__gte=ninety_days_ago, date__lte=parsed_date)
     meeting_count = recent_meetings.count()
 
+    # Streak calculation: all meetings BEFORE this one
+    past_meetings = list(MeetingDate.objects.filter(group=group, date__lt=parsed_date).order_by('date'))
+    past_ids = [m.pk for m in past_meetings]
+    past_records = {
+        (r['meeting_date_id'], r['member_id']): r['is_present']
+        for r in AttendanceRecord.objects.filter(meeting_date_id__in=past_ids).values('meeting_date_id', 'member_id', 'is_present')
+    }
+
+    today = dt.date.today()
+
     member_data = []
     for m in active_members:
         is_present = existing[m.pk].is_present if m.pk in existing else False
@@ -126,10 +136,27 @@ def meeting_detail(request, date):
                 meeting_date__in=recent_meetings, member=m, is_present=True
             ).count()
             rate = round((attended / meeting_count) * 100)
+
+        # Streaks from past meetings only
+        presences = [past_records.get((mid, m.pk), False) for mid in past_ids]
+        current_streak = 0
+        for p in reversed(presences):
+            if p: current_streak += 1
+            else: break
+        longest_streak = run = 0
+        for p in presences:
+            run = run + 1 if p else 0
+            longest_streak = max(longest_streak, run)
+
+        is_new = m.date_joined and (today - m.date_joined).days < 30
+
         member_data.append({
             'member': m,
             'is_present': is_present,
             'rate': rate,
+            'current_streak': current_streak,
+            'longest_streak': longest_streak,
+            'is_new': is_new,
         })
 
     return render(request, 'attendance/meeting_detail.html', {
@@ -193,6 +220,30 @@ def add_member(request):
         if name:
             Member.objects.get_or_create(group=group, name=name, defaults={'is_active': True})
     return redirect('members_list')
+
+
+@group_login_required
+def change_pin(request):
+    group = get_object_or_404(CareGroup, pk=request.session['group_id'])
+    error = None
+    success = False
+    if request.method == 'POST':
+        current_pin = request.POST.get('current_pin', '')
+        new_pin = request.POST.get('new_pin', '')
+        confirm_pin = request.POST.get('confirm_pin', '')
+        if not group.check_pin(current_pin):
+            error = 'Current PIN is incorrect.'
+        elif len(new_pin) < 4:
+            error = 'New PIN must be at least 4 characters.'
+        elif new_pin != confirm_pin:
+            error = 'New PINs do not match.'
+        else:
+            group.set_pin(new_pin)
+            group.save()
+            success = True
+    return render(request, 'attendance/change_pin.html', {
+        'group': group, 'error': error, 'success': success,
+    })
 
 
 @group_login_required

@@ -1,0 +1,38 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Change PIN — {{ group.name }}{% endblock %}
+
+{% block header %}
+<a href="{% url 'members_list' %}" class="header-action">‹ Back</a>
+<span class="app-title">Change PIN</span>
+<a href="#" class="header-action header-action-right"></a>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <div class="form-card">
+    {% if success %}
+      <div class="pin-success">✓ PIN updated successfully.</div>
+    {% endif %}
+    {% if error %}
+      <div class="form-error">{{ error }}</div>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Current PIN</label>
+        <input type="password" name="current_pin" class="form-input" autocomplete="current-password" required>
+      </div>
+      <div class="form-field">
+        <label>New PIN</label>
+        <input type="password" name="new_pin" class="form-input" autocomplete="new-password" required minlength="4">
+      </div>
+      <div class="form-field">
+        <label>Confirm New PIN</label>
+        <input type="password" name="confirm_pin" class="form-input" autocomplete="new-password" required minlength="4">
+      </div>
+      <button type="submit" class="btn btn-primary">Update PIN</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
