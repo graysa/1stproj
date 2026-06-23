@@ -1,6 +1,9 @@
-import csv
 import datetime
+from io import BytesIO
 from django.http import JsonResponse, HttpResponse
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 from django.shortcuts import render, get_object_or_404
 from attendance.decorators import group_login_required, staff_required
 from attendance.models import CareGroup, Member, MeetingDate, AttendanceRecord, Visitor
@@ -124,37 +127,108 @@ def admin_dashboard_data(request):
 
 @staff_required
 def export_csv(request):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="attendance_export.csv"'
+    wb = Workbook()
+    wb.remove(wb.active)  # remove default empty sheet
 
-    writer = csv.writer(response)
-    writer.writerow(['Date', 'Group', 'Member', 'Present'])
+    # Styles
+    header_font = Font(bold=True, color='FFFFFF', size=11)
+    header_fill = PatternFill('solid', fgColor='007AFF')
+    date_font = Font(bold=True, size=10)
+    date_fill = PatternFill('solid', fgColor='F2F2F7')
+    center = Alignment(horizontal='center', vertical='center')
+    thin = Side(style='thin', color='DDDDDD')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
-    records = (
-        AttendanceRecord.objects
-        .select_related('meeting_date__group', 'member')
-        .order_by('meeting_date__group__name', 'meeting_date__date', 'member__name')
+    groups = CareGroup.objects.all().order_by('name')
+
+    for group in groups:
+        ws = wb.create_sheet(title=group.name[:31])  # sheet name max 31 chars
+
+        members = list(Member.objects.filter(group=group).order_by('name'))
+        meetings = list(MeetingDate.objects.filter(group=group).order_by('date'))
+
+        if not meetings:
+            ws['A1'] = 'No meetings recorded yet.'
+            continue
+
+        # Build lookup: {(meeting_id, member_id): is_present}
+        all_records = AttendanceRecord.objects.filter(
+            meeting_date__group=group
+        ).values('meeting_date_id', 'member_id', 'is_present')
+        record_lookup = {(r['meeting_date_id'], r['member_id']): r['is_present'] for r in all_records}
+
+        # Visitor counts per meeting
+        visitor_counts = {}
+        for v in Visitor.objects.filter(meeting_date__group=group).values('meeting_date_id'):
+            mid = v['meeting_date_id']
+            visitor_counts[mid] = visitor_counts.get(mid, 0) + 1
+
+        # Header row: Date | member1 | member2 | ... | Visitors | Total
+        ws.column_dimensions['A'].width = 14
+        headers = ['Date'] + [m.name for m in members] + ['Visitors', 'Total Present']
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center
+            cell.border = border
+            if col > 1:
+                ws.column_dimensions[get_column_letter(col)].width = max(len(header) + 2, 10)
+
+        # Data rows
+        for row_idx, meeting in enumerate(meetings, start=2):
+            # Date cell
+            date_cell = ws.cell(row=row_idx, column=1, value=meeting.date.strftime('%d %b %Y'))
+            date_cell.font = date_font
+            date_cell.fill = date_fill
+            date_cell.alignment = center
+            date_cell.border = border
+
+            # Member columns
+            member_total = 0
+            for col_idx, member in enumerate(members, start=2):
+                is_present = record_lookup.get((meeting.pk, member.pk), False)
+                value = 1 if is_present else 0
+                member_total += value
+                cell = ws.cell(row=row_idx, column=col_idx, value=value)
+                cell.alignment = center
+                cell.border = border
+                if value == 1:
+                    cell.fill = PatternFill('solid', fgColor='E8F9ED')
+                    cell.font = Font(color='1A7A34', bold=True)
+
+            # Visitors column
+            v_col = len(members) + 2
+            v_count = visitor_counts.get(meeting.pk, 0)
+            vcell = ws.cell(row=row_idx, column=v_col, value=v_count)
+            vcell.alignment = center
+            vcell.border = border
+
+            # Total column
+            total_cell = ws.cell(row=row_idx, column=v_col + 1, value=member_total + v_count)
+            total_cell.alignment = center
+            total_cell.border = border
+            total_cell.font = Font(bold=True)
+
+        # Summary row at the bottom
+        sum_row = len(meetings) + 2
+        ws.cell(row=sum_row, column=1, value='Total').font = Font(bold=True)
+        for col_idx in range(2, len(members) + 2):
+            col_letter = get_column_letter(col_idx)
+            cell = ws.cell(row=sum_row, column=col_idx,
+                           value=f'=SUM({col_letter}2:{col_letter}{sum_row - 1})')
+            cell.font = Font(bold=True)
+            cell.alignment = center
+            cell.border = border
+
+        ws.freeze_panes = 'B2'  # freeze date column and header row
+
+    filename = f'attendance_{datetime.date.today().isoformat()}.xlsx'
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    for r in records:
-        writer.writerow([
-            r.meeting_date.date,
-            r.meeting_date.group.name,
-            r.member.name,
-            'Yes' if r.is_present else 'No',
-        ])
-
-    # Append visitors as separate rows
-    visitors = (
-        Visitor.objects
-        .select_related('meeting_date__group')
-        .order_by('meeting_date__group__name', 'meeting_date__date')
-    )
-    for v in visitors:
-        writer.writerow([
-            v.meeting_date.date,
-            v.meeting_date.group.name,
-            f'{v.name} (visitor)',
-            'Yes',
-        ])
-
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    buffer = BytesIO()
+    wb.save(buffer)
+    response.write(buffer.getvalue())
     return response
