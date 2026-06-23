@@ -22,7 +22,8 @@ def login_view(request):
             else:
                 form.add_error(None, 'Invalid group or PIN.')
 
-    return render(request, 'attendance/login.html', {'form': form})
+    groups = CareGroup.objects.order_by('name')
+    return render(request, 'attendance/login.html', {'form': form, 'groups': groups})
 
 
 def logout_view(request):

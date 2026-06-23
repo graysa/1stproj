@@ -1,30 +1,314 @@
 {% extends 'attendance/base.html' %}
 
-{% block title %}Sign In — Care Groups{% endblock %}
+{% block title %}Care Groups{% endblock %}
 
-{% block header %}
-<span class="app-title">Care Groups</span>
-{% endblock %}
+{% block tab_bar %}{% endblock %}
+
+{% block extra_head %}<style>.app-header{display:none!important}</style>{% endblock %}
+{% block header %}{% endblock %}
 
 {% block content %}
-<div class="auth-card">
-  <h1 class="auth-title">Welcome</h1>
-  <p class="auth-subtitle">Sign in to your care group</p>
-  <form method="post" class="auth-form">
-    {% csrf_token %}
-    {% if form.non_field_errors %}
-      <div class="form-error">{{ form.non_field_errors }}</div>
-    {% endif %}
-    <div class="form-field">
-      <label for="{{ form.group_name.id_for_label }}">Group</label>
-      {{ form.group_name }}
-    </div>
-    <div class="form-field">
-      <label for="{{ form.pin.id_for_label }}">PIN</label>
-      {{ form.pin }}
-    </div>
-    <button type="submit" class="btn btn-primary">Sign In</button>
-  </form>
-  <a href="/admin/" class="btn btn-admin">Admin</a>
+<div class="login-scene">
+
+  <div class="login-hero">
+    <h1 class="login-headline">Who's here today?</h1>
+    <p class="login-sub">Pick your group to get started</p>
+  </div>
+
+  <div class="group-grid">
+    {% for group in groups %}
+      {% with initial=group.name|slice:":1"|upper color_index=forloop.counter0 %}
+      <button class="group-card" type="button"
+              data-group="{{ group.name }}"
+              data-color="{{ color_index|divisibleby:5 }}"
+              onclick="openPin('{{ group.name }}', {{ color_index }})">
+        <div class="group-avatar gc-{{ color_index|add:'1' }}">{{ initial }}</div>
+        <span class="group-name">{{ group.name }}</span>
+      </button>
+      {% endwith %}
+    {% endfor %}
+  </div>
+
+  <a href="/admin/" class="login-admin-link">Admin access</a>
+
 </div>
+
+<!-- PIN modal -->
+<div class="pin-overlay" id="pin-overlay" onclick="closePin(event)">
+  <div class="pin-sheet" id="pin-sheet">
+    <div class="pin-sheet-handle"></div>
+    <div class="pin-selected-group" id="pin-group-name"></div>
+
+    <form method="post" class="pin-form" id="pin-form">
+      {% csrf_token %}
+      <input type="hidden" name="group_name" id="pin-group-input">
+
+      {% if form.non_field_errors %}
+        <div class="pin-error" id="pin-error-server">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="pin-error" id="pin-error" style="display:none">Wrong PIN — try again</div>
+
+      <div class="pin-dots" id="pin-dots">
+        <span class="pin-dot" id="d0"></span>
+        <span class="pin-dot" id="d1"></span>
+        <span class="pin-dot" id="d2"></span>
+        <span class="pin-dot" id="d3"></span>
+      </div>
+
+      <input type="hidden" name="pin" id="pin-hidden-input">
+
+      <div class="pin-pad">
+        {% for n in "123456789" %}
+          <button type="button" class="pin-key" onclick="pinKey('{{ n }}')">{{ n }}</button>
+        {% endfor %}
+        <button type="button" class="pin-key pin-key-clear" onclick="pinClear()">⌫</button>
+        <button type="button" class="pin-key" onclick="pinKey('0')">0</button>
+        <button type="button" class="pin-key pin-key-go" onclick="pinSubmit()">Go</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+/* ── Login scene ── */
+.login-scene {
+  min-height: 100dvh;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  background-size: 300% 300%;
+  animation: gradShift 10s ease infinite;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 20px 60px;
+  gap: 40px;
+}
+
+@keyframes gradShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.login-hero { text-align: center; }
+
+.login-headline {
+  font-size: 32px; font-weight: 800;
+  color: #fff; letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.login-sub {
+  font-size: 15px; color: rgba(255,255,255,0.55);
+  font-weight: 400;
+}
+
+/* ── Group grid ── */
+.group-grid {
+  display: flex; flex-wrap: wrap;
+  gap: 20px; justify-content: center;
+  max-width: 560px;
+}
+
+.group-card {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 12px;
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 24px 20px 18px;
+  width: 130px;
+  cursor: pointer;
+  transition: transform 0.18s, background 0.18s, box-shadow 0.18s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.group-card:hover,
+.group-card:active {
+  transform: scale(1.06);
+  background: rgba(255,255,255,0.13);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+}
+
+.group-avatar {
+  width: 68px; height: 68px; border-radius: 50%;
+  font-size: 28px; font-weight: 800; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* rotating palette */
+.gc-1 { background: linear-gradient(135deg, #6C63FF, #3B82F6); }
+.gc-2 { background: linear-gradient(135deg, #F472B6, #EC4899); }
+.gc-3 { background: linear-gradient(135deg, #34D399, #059669); }
+.gc-4 { background: linear-gradient(135deg, #FBBF24, #F59E0B); }
+.gc-5 { background: linear-gradient(135deg, #F87171, #EF4444); }
+.gc-6 { background: linear-gradient(135deg, #60A5FA, #3B82F6); }
+.gc-7 { background: linear-gradient(135deg, #A78BFA, #7C3AED); }
+.gc-8 { background: linear-gradient(135deg, #34D399, #10B981); }
+
+.group-name {
+  font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.88);
+  text-align: center; line-height: 1.3;
+}
+
+.login-admin-link {
+  font-size: 13px; color: rgba(255,255,255,0.3);
+  text-decoration: none; margin-top: 8px;
+  transition: color 0.15s;
+}
+.login-admin-link:hover { color: rgba(255,255,255,0.6); }
+
+/* ── PIN overlay ── */
+.pin-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  z-index: 300;
+  align-items: flex-end; justify-content: center;
+}
+
+.pin-overlay.open { display: flex; }
+
+.pin-sheet {
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 28px 28px 0 0;
+  padding: 16px 24px 48px;
+  width: 100%; max-width: 480px;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pin-overlay.open .pin-sheet {
+  transform: translateY(0);
+}
+
+.pin-sheet-handle {
+  width: 40px; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.2);
+  margin: 0 auto 20px;
+}
+
+.pin-selected-group {
+  text-align: center; font-size: 18px; font-weight: 700;
+  color: #fff; margin-bottom: 6px;
+}
+
+.pin-error {
+  text-align: center; font-size: 13px; color: #F87171;
+  margin-bottom: 12px; min-height: 18px;
+}
+
+.pin-dots {
+  display: flex; justify-content: center; gap: 16px;
+  margin: 20px 0 28px;
+}
+
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.pin-dot.filled {
+  background: #6C63FF;
+  border-color: #6C63FF;
+  transform: scale(1.15);
+}
+
+/* ── PIN pad ── */
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 12px; max-width: 280px; margin: 0 auto;
+}
+
+.pin-key {
+  aspect-ratio: 1; border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff; font-size: 22px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  transition: background 0.12s, transform 0.1s;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pin-key:active {
+  background: rgba(108,99,255,0.4);
+  transform: scale(0.93);
+}
+
+.pin-key-clear {
+  background: transparent;
+  font-size: 20px;
+}
+
+.pin-key-go {
+  background: #6C63FF;
+  border-color: #6C63FF;
+  font-size: 16px; font-weight: 700;
+}
+
+.pin-key-go:active { background: #5549e0; }
+</style>
+
+<script>
+let pinValue = '';
+const MAX = 6;
+
+function openPin(groupName, colorIdx) {
+  pinValue = '';
+  updateDots();
+  document.getElementById('pin-group-name').textContent = groupName;
+  document.getElementById('pin-group-input').value = groupName;
+  document.getElementById('pin-error').style.display = 'none';
+  document.getElementById('pin-overlay').classList.add('open');
+}
+
+function closePin(e) {
+  if (e.target === document.getElementById('pin-overlay')) {
+    document.getElementById('pin-overlay').classList.remove('open');
+  }
+}
+
+function pinKey(digit) {
+  if (pinValue.length >= MAX) return;
+  pinValue += digit;
+  updateDots();
+  if (pinValue.length === 4) {
+    setTimeout(pinSubmit, 120);
+  }
+}
+
+function pinClear() {
+  pinValue = pinValue.slice(0, -1);
+  updateDots();
+}
+
+function updateDots() {
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach((d, i) => {
+    d.classList.toggle('filled', i < pinValue.length);
+  });
+}
+
+function pinSubmit() {
+  if (!pinValue) return;
+  document.getElementById('pin-hidden-input').value = pinValue;
+  document.getElementById('pin-form').submit();
+}
+
+// If server returned an error, re-open the modal for the previously selected group
+{% if form.non_field_errors %}
+document.addEventListener('DOMContentLoaded', () => {
+  const groupInput = document.getElementById('pin-group-input');
+  const savedGroup = '{{ form.data.group_name|default:"" }}';
+  if (savedGroup) {
+    openPin(savedGroup, 0);
+  }
+});
+{% endif %}
+</script>
 {% endblock %}

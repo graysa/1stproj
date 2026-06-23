@@ -6,6 +6,7 @@
   <title>{% block title %}Care Groups{% endblock %}</title>
   {% load static %}
   <link rel="stylesheet" href="{% static 'attendance/css/style.css' %}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
   <header class="app-header">
