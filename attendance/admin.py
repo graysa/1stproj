@@ -1,7 +1,21 @@
 from django.contrib import admin
+from django.contrib.admin import AdminSite
 from django import forms
+from django.urls import reverse
+from django.utils.html import format_html
 from django.contrib.auth.hashers import make_password
 from .models import CareGroup, Member, MeetingDate, AttendanceRecord, Visitor
+
+
+# Add "Analytics Dashboard" link to admin index
+AdminSite.index_template = None  # use default
+
+original_each_context = AdminSite.each_context
+def patched_each_context(self, request, **kwargs):
+    ctx = original_each_context(self, request, **kwargs)
+    ctx['dashboard_url'] = reverse('admin_dashboard')
+    return ctx
+AdminSite.each_context = patched_each_context
 
 
 class CareGroupAdminForm(forms.ModelForm):

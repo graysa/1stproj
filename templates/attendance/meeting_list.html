@@ -1,4 +1,5 @@
 {% extends 'attendance/base.html' %}
+{% load attendance_tags %}
 
 {% block title %}Meetings — {{ group.name }}{% endblock %}
 
@@ -32,8 +33,47 @@
 
   <a href="{% url 'add_meeting_date' %}" class="btn btn-primary new-meeting-btn">+ New Meeting</a>
 
+  <!-- Calendar -->
+  <div class="cal-card">
+    <div class="cal-header">
+      <a href="?y={{ prev_y }}&m={{ prev_m }}" class="cal-nav">‹</a>
+      <span class="cal-month-label">{{ cal_month_name }}</span>
+      <a href="?y={{ next_y }}&m={{ next_m }}" class="cal-nav">›</a>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-dow">Mon</div>
+      <div class="cal-dow">Tue</div>
+      <div class="cal-dow">Wed</div>
+      <div class="cal-dow">Thu</div>
+      <div class="cal-dow">Fri</div>
+      <div class="cal-dow">Sat</div>
+      <div class="cal-dow">Sun</div>
+      {% for week in cal_weeks %}
+        {% for day in week %}
+          {% if day %}
+            {% with count=meeting_map|get_item:day %}
+            {% if count != None %}
+              <a href="{% url 'meeting_detail' day|date:'Y-m-d' %}"
+                 class="cal-day cal-day-logged {% if day == today %}cal-day-today{% endif %}">
+                <span class="cal-day-num">{{ day.day }}</span>
+                <span class="cal-day-count">{{ count }}</span>
+              </a>
+            {% else %}
+              <div class="cal-day {% if day == today %}cal-day-today{% endif %}">
+                <span class="cal-day-num">{{ day.day }}</span>
+              </div>
+            {% endif %}
+            {% endwith %}
+          {% else %}
+            <div class="cal-day cal-day-empty"></div>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
   {% if meetings %}
-    <p class="section-title">Past Meetings</p>
+    <p class="section-title">All Meetings</p>
     <ul class="meeting-list">
       {% for meeting in meetings %}
         <li class="meeting-card">

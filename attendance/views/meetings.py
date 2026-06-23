@@ -12,17 +12,58 @@ def meeting_list(request):
     meetings = MeetingDate.objects.filter(group=group).order_by('-date')
 
     total = meetings.count()
+    active_member_count = Member.objects.filter(group=group, is_active=True).count()
     avg_attendance = 0
     if total:
         total_present = sum(m.attendance_count() for m in meetings)
         avg_attendance = round(total_present / total, 1)
+
+    # Calendar: default to current month, allow ?y=&m= nav
+    today = dt.date.today()
+    try:
+        cal_year = int(request.GET.get('y', today.year))
+        cal_month = int(request.GET.get('m', today.month))
+        if cal_month < 1: cal_month = 12; cal_year -= 1
+        if cal_month > 12: cal_month = 1; cal_year += 1
+        cal_date = dt.date(cal_year, cal_month, 1)
+    except (ValueError, TypeError):
+        cal_date = today.replace(day=1)
+        cal_year, cal_month = cal_date.year, cal_date.month
+
+    # Build set of logged dates this month
+    import calendar
+    meeting_map = {m.date: m.attendance_count() for m in meetings}
+    _, days_in_month = calendar.monthrange(cal_year, cal_month)
+    first_weekday = cal_date.weekday()  # 0=Mon
+
+    # Build calendar weeks (list of 7-item lists, None = empty cell)
+    cal_days = [None] * first_weekday
+    for d in range(1, days_in_month + 1):
+        cal_days.append(dt.date(cal_year, cal_month, d))
+    while len(cal_days) % 7 != 0:
+        cal_days.append(None)
+    cal_weeks = [cal_days[i:i+7] for i in range(0, len(cal_days), 7)]
+
+    # Prev/next month urls
+    prev_month = cal_date - dt.timedelta(days=1)
+    next_month = (cal_date + dt.timedelta(days=31)).replace(day=1)
 
     return render(request, 'attendance/meeting_list.html', {
         'group': group,
         'meetings': meetings,
         'total_meetings': total,
         'avg_attendance': avg_attendance,
-        'active_member_count': Member.objects.filter(group=group, is_active=True).count(),
+        'active_member_count': active_member_count,
+        'meeting_map': meeting_map,
+        'cal_weeks': cal_weeks,
+        'cal_year': cal_year,
+        'cal_month': cal_month,
+        'cal_month_name': cal_date.strftime('%B %Y'),
+        'prev_y': prev_month.year,
+        'prev_m': prev_month.month,
+        'next_y': next_month.year,
+        'next_m': next_month.month,
+        'today': today,
     })
 
 
@@ -119,6 +160,19 @@ def add_visitor(request, date):
                 note=form.cleaned_data.get('note', ''),
             )
     return redirect('meeting_detail', date=date)
+
+
+@group_login_required
+def delete_meeting(request, date):
+    group = get_object_or_404(CareGroup, pk=request.session['group_id'])
+    try:
+        parsed_date = dt.date.fromisoformat(date)
+    except ValueError:
+        raise Http404
+    meeting = get_object_or_404(MeetingDate, group=group, date=parsed_date)
+    if request.method == 'POST':
+        meeting.delete()
+    return redirect('meeting_list')
 
 
 @group_login_required

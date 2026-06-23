@@ -47,6 +47,11 @@
     + Add Visitor
   </button>
 
+  <button type="button" class="btn btn-danger delete-meeting-btn"
+    onclick="document.getElementById('delete-modal').classList.add('open')">
+    Delete This Meeting Log
+  </button>
+
   {% if visitors %}
     <p class="section-title visitors-title">Visitors</p>
     <ul class="visitor-list">
@@ -61,6 +66,25 @@
       {% endfor %}
     </ul>
   {% endif %}
+</div>
+
+<div id="delete-modal" class="modal-overlay">
+  <div class="modal-card">
+    <h3 class="modal-title">Delete Meeting Log?</h3>
+    <p style="color:var(--text2);font-size:15px;margin-bottom:20px;line-height:1.5;">
+      This will permanently delete the attendance log for <strong>{{ meeting.date|date:"d M Y" }}</strong>, including all attendance records and visitors. This cannot be undone.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost"
+        onclick="document.getElementById('delete-modal').classList.remove('open')">
+        Cancel
+      </button>
+      <form method="post" action="{% url 'delete_meeting' meeting.date|date:'Y-m-d' %}" style="flex:1">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" style="width:100%;margin-top:0">Delete</button>
+      </form>
+    </div>
+  </div>
 </div>
 
 <div id="visitor-modal" class="modal-overlay">
