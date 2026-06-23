@@ -5,7 +5,7 @@
 {% block header %}
 <a href="{% url 'meeting_list' %}" class="header-action">‹ Back</a>
 <span class="app-title">{{ meeting.date|date:"d M Y" }}</span>
-<a href="{% url 'logout' %}" class="header-action header-action-right">Sign out</a>
+<span></span>
 {% endblock %}
 
 {% block content %}

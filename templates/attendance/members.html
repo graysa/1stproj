@@ -2,10 +2,12 @@
 
 {% block title %}Members — {{ group.name }}{% endblock %}
 
+{% block tab_members %}active{% endblock %}
+
 {% block header %}
-<a href="{% url 'meeting_list' %}" class="header-action">‹ Back</a>
+<span></span>
 <span class="app-title">Members</span>
-<a href="#" class="header-action header-action-right"></a>
+<a href="{% url 'logout' %}" class="header-action header-action-right" style="font-size:13px;color:var(--text2);">Sign out</a>
 {% endblock %}
 
 {% block content %}

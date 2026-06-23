@@ -11,9 +11,31 @@ function today() {
   return new Date().toISOString().split('T')[0];
 }
 
+function updateSummary(data) {
+  const summary = document.getElementById('analytics-summary');
+  if (!summary) return;
+
+  const meetingCount = data.weekly.labels.length;
+  document.getElementById('sum-meetings').textContent = meetingCount;
+
+  const rates = data.member_rates.map(m => m.rate);
+  const avgRate = rates.length
+    ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length)
+    : 0;
+  document.getElementById('sum-rate').textContent = avgRate + '%';
+
+  const best = data.member_rates.reduce((a, b) => (b.rate > a.rate ? b : a), { name: '—', rate: 0 });
+  const firstName = best.name.split(' ')[0];
+  document.getElementById('sum-best').textContent = firstName;
+
+  summary.classList.add('loaded');
+}
+
 async function loadCharts(fromDate, toDate) {
   const res = await fetch(`${DATA_URL}?from=${fromDate}&to=${toDate}`);
   const data = await res.json();
+
+  updateSummary(data);
 
   if (weeklyChart) weeklyChart.destroy();
   if (memberChart) memberChart.destroy();

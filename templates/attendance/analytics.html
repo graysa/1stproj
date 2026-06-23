@@ -2,14 +2,33 @@
 
 {% block title %}Analytics — {{ group.name }}{% endblock %}
 
+{% block tab_analytics %}active{% endblock %}
+
 {% block header %}
-<a href="{% url 'meeting_list' %}" class="header-back">‹ Meetings</a>
+<span></span>
 <span class="app-title">Analytics</span>
-<a href="{% url 'logout' %}" class="header-logout">Sign out</a>
+<span></span>
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
+  <div class="analytics-summary stats-strip" id="analytics-summary">
+    <div class="stat-item">
+      <span class="stat-value analytics-stat-value" id="sum-meetings">—</span>
+      <span class="stat-label">Meetings</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-value analytics-stat-value" id="sum-rate">—</span>
+      <span class="stat-label">Avg Rate</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-value analytics-stat-value" id="sum-best">—</span>
+      <span class="stat-label">Top Attender</span>
+    </div>
+  </div>
+
   <div class="range-presets">
     <button class="preset-btn" data-days="30">1 month</button>
     <button class="preset-btn active" data-days="91">3 months</button>

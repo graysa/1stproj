@@ -78,10 +78,18 @@ def add_meeting_date(request):
             return redirect('meeting_list')
         MeetingDate.objects.get_or_create(group=group, date=date)
         return redirect('meeting_detail', date=date.isoformat())
-    today = dt.date.today().isoformat()
+    today = dt.date.today()
+    prefill = request.GET.get('date', '')
+    try:
+        prefill_date = dt.date.fromisoformat(prefill)
+        if prefill_date > today:
+            prefill_date = today
+    except (ValueError, TypeError):
+        prefill_date = today
     return render(request, 'attendance/add_meeting_date.html', {
         'group': group,
-        'today': today,
+        'today': today.isoformat(),
+        'prefill_date': prefill_date.isoformat(),
     })
 
 

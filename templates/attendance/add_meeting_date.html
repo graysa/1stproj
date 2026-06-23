@@ -16,7 +16,7 @@
       {% csrf_token %}
       <div class="form-field">
         <label>Meeting Date</label>
-        <input type="date" name="date" value="{{ today }}" max="{{ today }}" required>
+        <input type="date" name="date" value="{{ prefill_date }}" max="{{ today }}" required>
       </div>
       <button type="submit" class="btn btn-primary">Open Attendance</button>
     </form>
