@@ -308,20 +308,35 @@ textarea.form-input { resize: vertical; min-height: 72px; }
 
 .streak-zero { opacity: 0.4; }
 
-/* ===== Milestone borders ===== */
+/* ===== Milestone card backgrounds ===== */
 .milestone-silver {
+  background: linear-gradient(145deg, #F0F0F5, #E4E4ED) !important;
   border-color: #A0A0B0 !important;
-  box-shadow: 0 2px 12px rgba(160,160,176,0.25) !important;
+  box-shadow: 0 2px 12px rgba(160,160,176,0.30) !important;
+}
+
+.milestone-silver .member-avatar {
+  background: linear-gradient(135deg, #8E8EA0, #B0B0C0) !important;
 }
 
 .milestone-gold {
+  background: linear-gradient(145deg, #FFF8E7, #FFF0C0) !important;
   border-color: #F0B429 !important;
-  box-shadow: 0 2px 16px rgba(240,180,41,0.30) !important;
+  box-shadow: 0 2px 16px rgba(240,180,41,0.35) !important;
+}
+
+.milestone-gold .member-avatar {
+  background: linear-gradient(135deg, #D4940A, #F0B429) !important;
 }
 
 .milestone-special {
+  background: linear-gradient(145deg, #F9EEFF, #EDD5FF) !important;
   border-color: #BF5AF2 !important;
-  box-shadow: 0 2px 20px rgba(191,90,242,0.30) !important;
+  box-shadow: 0 2px 20px rgba(191,90,242,0.35) !important;
+}
+
+.milestone-special .member-avatar {
+  background: linear-gradient(135deg, #9B30D0, #BF5AF2) !important;
 }
 
 /* ===== New member tag ===== */
